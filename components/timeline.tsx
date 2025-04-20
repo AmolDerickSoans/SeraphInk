@@ -7,7 +7,7 @@ import type React from "react"
 
 import { useState, useRef, useEffect } from "react"
 import { motion, useMotionValue, animate, type PanInfo } from "framer-motion"
-import { X, ChevronLeft, ChevronRight, BookOpen, Sliders } from "lucide-react"
+import { X, ChevronLeft, ChevronRight, BookOpen, Sliders, MessageSquare, Briefcase, Lightbulb, Code, Heart } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
@@ -51,10 +51,14 @@ export function Timeline({ historyData, onClose }: TimelineProps) {
     const newX = Math.max(0, Math.min(timelineWidth.current, x.get() + info.delta.x))
     x.set(newX)
 
-    // Calculate new active index based on position
-    const newIndex = Math.round((newX / timelineWidth.current) * (historyData.length - 1))
+    // Calculate nearest checkpoint position
+    const percentage = newX / timelineWidth.current
+    const newIndex = Math.round(percentage * (historyData.length - 1))
     if (newIndex !== activeIndex) {
       setActiveIndex(newIndex)
+      // Snap to nearest checkpoint
+      const snapX = (newIndex / (historyData.length - 1)) * timelineWidth.current
+      animate(x, snapX, { duration: 0.2, type: "spring", stiffness: 400 })
     }
   }
 
@@ -87,7 +91,7 @@ export function Timeline({ historyData, onClose }: TimelineProps) {
 
   return (
     <motion.div
-      className="absolute bottom-8 left-1/2 -translate-x-1/2 w-[80%] max-w-3xl bg-[#1A1A1A] rounded-xl shadow-2xl p-4"
+      className="flex-1 bg-[#1A1A1A]/90 backdrop-blur-md rounded-xl shadow-2xl p-4"
       initial={{ opacity: 0, y: 50 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 50 }}
@@ -117,7 +121,7 @@ export function Timeline({ historyData, onClose }: TimelineProps) {
       >
         <div className="flex items-start gap-3">
           <div className="w-8 h-8 rounded-full bg-[#FF5722] flex items-center justify-center shrink-0">
-            <span className="text-white text-xs font-bold">{activeIndex + 1}</span>
+            {getIconForItem(historyData[activeIndex])}
           </div>
           <div className="flex-1">
             <div className="text-white font-medium mb-1">{historyData[activeIndex].content}</div>
@@ -199,11 +203,17 @@ export function Timeline({ historyData, onClose }: TimelineProps) {
             dragMomentum={false}
             onDrag={handleDrag}
             onDragStart={() => setIsDragging(true)}
-            onDragEnd={() => setTimeout(() => setIsDragging(false), 100)}
+            onDragEnd={() => {
+              // Ensure final snap on drag end
+              const percentage = x.get() / timelineWidth.current
+              const finalIndex = Math.round(percentage * (historyData.length - 1))
+              const snapX = (finalIndex / (historyData.length - 1)) * timelineWidth.current
+              animate(x, snapX, { duration: 0.3, type: "spring", stiffness: 400 })
+              setTimeout(() => setIsDragging(false), 100)
+            }}
             style={{ x }}
             className="absolute top-1/2 -translate-y-1/2 w-5 h-5 bg-white rounded-full shadow-lg flex items-center justify-center cursor-grab active:cursor-grabbing z-10"
           />
-
           {/* Progress track */}
           <div
             className="absolute top-1/2 -translate-y-1/2 left-0 h-2 bg-[#FF5722] rounded-full"
