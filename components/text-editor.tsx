@@ -92,7 +92,7 @@ export default function TextEditor() {
   return (
     <div className="relative w-full h-screen overflow-hidden">
       {/* Main Editor Canvas - Full Screen */}
-      <div ref={editorRef} className="w-full h-full bg-white p-8 overflow-auto">
+      <div ref={editorRef} className="w-full h-full bg-white pt-24 px-8 pb-8 overflow-auto">
         <div
           contentEditable
           className="outline-none min-h-full text-[#121212] text-lg leading-relaxed max-w-4xl mx-auto"
