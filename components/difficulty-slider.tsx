@@ -57,7 +57,7 @@ export function DifficultySlider({ difficulty, setDifficulty, onClose }: Difficu
 
   return (
     <motion.div
-      className="absolute right-8 top-1/2 -translate-y-1/2 w-[280px] bg-[#1A1A1A] rounded-xl shadow-2xl flex flex-col p-4"
+      className="w-[280px] bg-[#1A1A1A]/90 backdrop-blur-md rounded-xl shadow-2xl flex flex-col p-6"
       initial={{ opacity: 0, x: 50 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: 50 }}
