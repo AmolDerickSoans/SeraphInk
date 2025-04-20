@@ -104,7 +104,7 @@ export default function TextEditor() {
 
       {/* Centered Floating Header */}
       <motion.div
-        className="absolute top-6 left-1/2 transform -translate-x-1/2 bg-[#1A1A1A] rounded-xl shadow-xl flex flex-col overflow-hidden"
+        className="fixed top-6 left-0 right-0 mx-auto bg-[#1A1A1A] rounded-xl shadow-xl flex flex-col overflow-hidden w-[90%] max-w-2xl"
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
@@ -212,14 +212,16 @@ export default function TextEditor() {
         )}
       </AnimatePresence>
 
-      {/* Floating Panels */}
+      {/* Floating Panels - Consistently positioned */}
       <AnimatePresence>
         {showDifficultySlider && (
-          <DifficultySlider
-            difficulty={difficulty}
-            setDifficulty={setDifficulty}
-            onClose={() => setShowDifficultySlider(false)}
-          />
+          <div className="fixed right-8 top-1/2 -translate-y-1/2">
+            <DifficultySlider
+              difficulty={difficulty}
+              setDifficulty={setDifficulty}
+              onClose={() => setShowDifficultySlider(false)}
+            />
+          </div>
         )}
       </AnimatePresence>
 
@@ -227,11 +229,17 @@ export default function TextEditor() {
         {showToneAdjuster && <ToneAdjuster onClose={() => setShowToneAdjuster(false)} />}
       </AnimatePresence>
 
-      <AnimatePresence>{showToolsPanel && <ToolsPanel onClose={() => setShowToolsPanel(false)} />}</AnimatePresence>
-
-      {/* Timeline */}
       <AnimatePresence>
-        {showTimeline && <Timeline historyData={historyData} onClose={() => setShowTimeline(false)} />}
+        {showToolsPanel && <ToolsPanel onClose={() => setShowToolsPanel(false)} />}
+      </AnimatePresence>
+
+      {/* Timeline - Centered at bottom */}
+      <AnimatePresence>
+        {showTimeline && (
+          <div className="fixed inset-x-0 bottom-0 flex items-center justify-center w-[80vw] mx-auto">
+            <Timeline historyData={historyData} onClose={() => setShowTimeline(false)} />
+          </div>
+        )}
       </AnimatePresence>
     </div>
   )
