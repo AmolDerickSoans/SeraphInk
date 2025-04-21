@@ -6,6 +6,13 @@
 import { useState, useRef, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { BookOpen, Sliders, Type, Mic, Save, History } from "lucide-react"
+import { useEditor, EditorContent, EditorProvider } from "@tiptap/react"
+import StarterKit from "@tiptap/starter-kit"
+import Highlight from "@tiptap/extension-highlight"
+import TextAlign from "@tiptap/extension-text-align"
+import FontFamily from "@tiptap/extension-font-family"
+import TextStyle from "@tiptap/extension-text-style" // Needed for FontFamily
+import Underline from "@tiptap/extension-underline" // Import Underline
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -47,17 +54,40 @@ const historyData = [
 ]
 
 export default function TextEditor() {
-  const [showFormattingToolbar, setShowFormattingToolbar] = useState(false)
-  const [showDifficultySlider, setShowDifficultySlider] = useState(false)
-  const [showToneAdjuster, setShowToneAdjuster] = useState(false)
-  const [showToolsPanel, setShowToolsPanel] = useState(false)
-  const [showTimeline, setShowTimeline] = useState(false)
+  const [activePanel, setActivePanel] = useState<string | null>(null)
+  
+  const togglePanel = (panelName: string) => {
+    setActivePanel(activePanel === panelName ? null : panelName)
+  }
   const [difficulty, setDifficulty] = useState(3)
-  const [text, setText] = useState(sampleText)
+  // const [text, setText] = useState(sampleText) // Managed by Tiptap now
   const [isRecording, setIsRecording] = useState(false)
   const [isSaved, setIsSaved] = useState(false)
-  const editorRef = useRef<HTMLDivElement>(null)
+  // const editorRef = useRef<HTMLDivElement>(null) // Tiptap manages the editor ref
   const isMobile = useMobile()
+
+  const editor = useEditor({
+    extensions: [
+      StarterKit.configure({
+        // Configure StarterKit options if needed
+        // e.g., disable some default extensions
+      }),
+      Highlight,
+      TextAlign.configure({
+        types: ["heading", "paragraph"], // Apply alignment to headings and paragraphs
+      }),
+      FontFamily,
+      TextStyle, // Required by FontFamily
+      Underline, // Add Underline extension
+    ],
+    content: sampleText, // Set initial content
+    editorProps: {
+      attributes: {
+        // Apply Tailwind classes for styling the editor content area
+        class: "outline-none min-h-full text-[#121212] text-lg leading-relaxed max-w-4xl mx-auto prose dark:prose-invert prose-sm sm:prose-base lg:prose-lg xl:prose-2xl focus:outline-none",
+      },
+    },
+  })
 
   // Simulate saving animation
   const handleSave = () => {
@@ -73,38 +103,26 @@ export default function TextEditor() {
     }
   }
 
-  // Handle pinch to zoom (simplified simulation)
-  useEffect(() => {
-    const handleWheel = (e: WheelEvent) => {
-      if (e.ctrlKey) {
-        e.preventDefault()
-        // Simulate pinch zoom by adjusting font size
-        const currentSize = Number.parseFloat(getComputedStyle(document.documentElement).fontSize)
-        const newSize = e.deltaY > 0 ? Math.max(14, currentSize - 1) : Math.min(24, currentSize + 1)
-        document.documentElement.style.fontSize = `${newSize}px`
-      }
-    }
+  // Remove the old pinch-to-zoom simulation
+  // useEffect(() => { ... }, [])
 
-    document.addEventListener("wheel", handleWheel, { passive: false })
-    return () => document.removeEventListener("wheel", handleWheel)
-  }, [])
+  // Cleanup editor instance on unmount
+  useEffect(() => {
+    return () => {
+      editor?.destroy()
+    }
+  }, [editor])
+
+  if (!editor) {
+    return null // Or a loading indicator
+  }
 
   return (
-    <div className="relative w-full h-screen overflow-hidden">
-      {/* Main Editor Canvas - Full Screen */}
-      <div ref={editorRef} className="w-full h-full bg-white pt-24 px-8 pb-8 overflow-auto">
-        <div
-          contentEditable
-          className="outline-none min-h-full text-[#121212] text-lg leading-relaxed max-w-4xl mx-auto"
-          suppressContentEditableWarning={true}
-        >
-          {text}
-        </div>
-      </div>
-
-      {/* Centered Floating Header */}
+    <div className="relative w-full h-screen overflow-hidden flex flex-col">
+      {/* Centered Floating Header - Positioned absolutely */}
       <motion.div
-        className="fixed top-6 left-0 right-0 mx-auto bg-[#1A1A1A] rounded-xl shadow-xl flex flex-col overflow-hidden w-[90%] max-w-2xl"
+        // Use fixed positioning for the header to overlay the editor
+        className="fixed top-6 left-0 right-0 z-10 mx-auto bg-[#1A1A1A] rounded-xl shadow-xl flex flex-col overflow-hidden w-[90%] max-w-2xl"
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
@@ -114,18 +132,18 @@ export default function TextEditor() {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => setShowToolsPanel(!showToolsPanel)}
-              className={cn("text-white hover:text-[#FF5722] transition-colors", showToolsPanel && "text-[#FF5722]")}
+              onClick={() => togglePanel('toolsPanel')}
+              className={cn("text-white hover:text-[#FF5722] transition-colors", activePanel === 'toolsPanel' && "text-[#FF5722]")}
             >
               <Type className="w-5 h-5" />
             </Button>
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => setShowFormattingToolbar(!showFormattingToolbar)}
+              onClick={() => togglePanel('formattingToolbar')}
               className={cn(
                 "text-white hover:text-[#FF5722] transition-colors",
-                showFormattingToolbar && "text-[#FF5722]",
+                activePanel === 'formattingToolbar' && "text-[#FF5722]",
               )}
             >
               <span className="font-bold text-lg">T</span>
@@ -133,10 +151,10 @@ export default function TextEditor() {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => setShowDifficultySlider(!showDifficultySlider)}
+              onClick={() => togglePanel('difficultySlider')}
               className={cn(
                 "text-white hover:text-[#FF5722] transition-colors",
-                showDifficultySlider && "text-[#FF5722]",
+                activePanel === 'difficultySlider' && "text-[#FF5722]",
               )}
             >
               <BookOpen className="w-5 h-5" />
@@ -144,8 +162,8 @@ export default function TextEditor() {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => setShowToneAdjuster(!showToneAdjuster)}
-              className={cn("text-white hover:text-[#FF5722] transition-colors", showToneAdjuster && "text-[#FF5722]")}
+              onClick={() => togglePanel('toneAdjuster')}
+              className={cn("text-white hover:text-[#FF5722] transition-colors", activePanel === 'toneAdjuster' && "text-[#FF5722]")}
             >
               <Sliders className="w-5 h-5" />
             </Button>
@@ -171,8 +189,8 @@ export default function TextEditor() {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => setShowTimeline(!showTimeline)}
-              className={cn("text-white hover:text-[#FF5722] transition-colors", showTimeline && "text-[#FF5722]")}
+              onClick={() => togglePanel('timeline')}
+              className={cn("text-white hover:text-[#FF5722] transition-colors", activePanel === 'timeline' && "text-[#FF5722]")}
             >
               <History className="w-5 h-5" />
             </Button>
@@ -180,10 +198,18 @@ export default function TextEditor() {
         </div>
 
         {/* Expandable Formatting Toolbar */}
-        <AnimatePresence>{showFormattingToolbar && <FormattingToolbar />}</AnimatePresence>
+        {/* Pass editor instance to FormattingToolbar */}
+        <AnimatePresence>{activePanel === 'formattingToolbar' && <FormattingToolbar editor={editor} />}</AnimatePresence>
       </motion.div>
 
-      {/* Voice Recording Indicator */}
+      {/* Main Editor Canvas - Takes remaining space */}
+      {/* Use EditorContent for the Tiptap editor */}
+      <div className="flex-grow w-full bg-white pt-24 px-8 pb-8 overflow-auto">
+         <EditorContent editor={editor} />
+      </div>
+
+
+      {/* Voice Recording Indicator - Positioned absolutely */}
       <AnimatePresence>
         {isRecording && (
           <motion.div
@@ -212,35 +238,38 @@ export default function TextEditor() {
         )}
       </AnimatePresence>
 
-      {/* Floating Panels - Consistently positioned */}
+      {/* Floating Panels - Positioned absolutely */}
       <AnimatePresence>
-        {showDifficultySlider && (
-          <div className="fixed right-8 top-1/2 -translate-y-1/2">
+        {activePanel === 'difficultySlider' && (
+          // Ensure panels have high z-index to appear above editor
+          <div className="fixed right-8 top-1/2 -translate-y-1/2 z-20">
             <DifficultySlider
               difficulty={difficulty}
-              setDifficulty={setDifficulty}
-              onClose={() => setShowDifficultySlider(false)}
+              setDifficulty={setDifficulty} // This might need adjustment depending on how difficulty interacts with Tiptap
+              // onClose={() => setActivePanel(null)} // Removed as per TS error
             />
           </div>
         )}
       </AnimatePresence>
 
+      {/* Ensure panels have high z-index */}
       <AnimatePresence>
-        {showToneAdjuster && <ToneAdjuster onClose={() => setShowToneAdjuster(false)} />}
+        {activePanel === 'toneAdjuster' && <div className="fixed z-20"><ToneAdjuster onClose={() => setActivePanel(null)} /></div>}
       </AnimatePresence>
 
       <AnimatePresence>
-        {showToolsPanel && <ToolsPanel onClose={() => setShowToolsPanel(false)} />}
+        {activePanel === 'toolsPanel' && <div className="fixed z-20"><ToolsPanel onClose={() => setActivePanel(null)} /></div>}
       </AnimatePresence>
 
-      {/* Timeline - Centered at bottom */}
+      {/* Timeline - Centered at bottom, ensure high z-index */}
       <AnimatePresence>
-        {showTimeline && (
-          <div className="fixed inset-x-0 bottom-0 flex items-center justify-center w-[80vw] mx-auto">
-            <Timeline historyData={historyData} onClose={() => setShowTimeline(false)} />
+        {activePanel === 'timeline' && (
+          <div className="fixed inset-x-0 bottom-0 flex items-center justify-center w-[80vw] mx-auto z-20">
+            <Timeline historyData={historyData} onClose={() => setActivePanel(null)} />
           </div>
         )}
       </AnimatePresence>
+
     </div>
   )
 }

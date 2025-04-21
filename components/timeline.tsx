@@ -11,6 +11,25 @@ import { X, ChevronLeft, ChevronRight, BookOpen, Sliders, MessageSquare, Briefca
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
+// Helper function to get the appropriate icon based on item properties
+const getIconForItem = (item: TimelineItem): React.ReactNode => {
+  // Prioritize specific properties if they exist
+  if (item.level) {
+    // Icon for reading level adjustments
+    return <BookOpen className="w-4 h-4 text-white" />;
+  }
+  if (item.tone) {
+    // Icon for tone adjustments
+    return <Sliders className="w-4 h-4 text-white" />;
+  }
+
+  // Add more sophisticated logic here based on item content or type if needed.
+  // For example, you could check item.content for keywords or use a hypothetical item.type.
+
+  // Default icon if no specific property matches
+  return <MessageSquare className="w-4 h-4 text-white" />;
+};
+
 interface TimelineItem {
   id: number
   timestamp: string
@@ -212,7 +231,7 @@ export function Timeline({ historyData, onClose }: TimelineProps) {
               setTimeout(() => setIsDragging(false), 100)
             }}
             style={{ x }}
-            className="absolute top-1/2 -translate-y-1/2 w-5 h-5 bg-white rounded-full shadow-lg flex items-center justify-center cursor-grab active:cursor-grabbing z-10"
+            className="absolute top-[20%] -translate-y-[-50%] w-5 h-5 bg-white rounded-full shadow-lg flex items-center justify-center cursor-grab active:cursor-grabbing z-10"
           />
           {/* Progress track */}
           <div
