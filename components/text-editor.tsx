@@ -1,141 +1,244 @@
+// Path: components/text-editor.tsx (updated)
+
 "use client"
 
-// This is the main editor component that orchestrates all the floating UI elements
-// It manages the state of which panels are visible and handles the core text editing functionality
-
-import { useState, useRef, useEffect } from "react"
+import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Mic } from "lucide-react"
-import { useEditor, EditorContent, EditorProvider } from "@tiptap/react"
+import { BookOpen, Sliders, Type, Mic, Save, History, Sparkles, Terminal, ArrowLeftRight } from "lucide-react"
+import { useEditor, EditorContent } from "@tiptap/react"
 import StarterKit from "@tiptap/starter-kit"
 import Highlight from "@tiptap/extension-highlight"
 import TextAlign from "@tiptap/extension-text-align"
 import FontFamily from "@tiptap/extension-font-family"
-import TextStyle from "@tiptap/extension-text-style" // Needed for FontFamily
-import Underline from "@tiptap/extension-underline" // Import Underline
+import TextStyle from "@tiptap/extension-text-style"
+import Underline from "@tiptap/extension-underline"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { DifficultySlider } from "@/components/difficulty-slider"
 import { ToneAdjuster } from "@/components/tone-adjuster"
 import { ToolsPanel } from "@/components/tools-panel"
-import { EditorHeader } from "@/components/editor-header"
+import { FormattingToolbar } from "@/components/formatting-toolbar"
 import { Timeline } from "@/components/timeline"
 import { useMobile } from "@/hooks/use-mobile"
+import { EditorProvider } from "@/components/editor/context/EditorContext"
+import { useEditorState } from "@/hooks/use-editor-state"
+import { AIPanel } from "./editor/AIPanel/AIPanel"
+import { CursorIDE } from "@/components/editor/CursorIDE/CursorIDE"
+import { VersionDiff } from "@/components/editor/DiffViewer/VersionDiff"
 
-const sampleText = `Introducing the next-generation text editor, an innovative, AI-driven writing tool that reimagines the creative process as an intuitive and interactive experience. Users begin with a simple input—keywords, a topic, or a prompt—and the AI generates an initial draft. From there, users refine and sculpt the text using a blend of gestures, parameter adjustments, voice commands, and real-time feedback.`
+// Inner editor component that uses the editor context
+function TextEditorInner() {
+  // Get state from context
+  const { 
+    document, 
+    setDocument, 
+    handleSelectionChange,
+    isDiffMode,
+    selectedVersions
+  } = useEditorState();
 
-// Sample history data for the timeline
-const historyData = [
-  {
-    id: 1,
-    timestamp: "10:30 AM",
-    content: "Initial draft generated from prompt",
-    level: "College",
-    tone: "Professional",
-  },
-  {
-    id: 2,
-    timestamp: "10:32 AM",
-    content: "Adjusted to college reading level",
-    level: "College",
-    tone: "Professional",
-  },
-  { id: 3, timestamp: "10:35 AM", content: "Changed tone to professional", level: "High School", tone: "Casual" },
-  { id: 4, timestamp: "10:38 AM", content: "Expanded introduction paragraph", level: "Graduate", tone: "Technical" },
-  { id: 5, timestamp: "10:40 AM", content: "Added technical details", level: "Graduate", tone: "Technical" },
-  {
-    id: 6,
-    timestamp: "10:45 AM",
-    content: "Simplified conclusion for clarity",
-    level: "Middle School",
-    tone: "Casual",
-  },
-]
-
-export default function TextEditor() {
-  const [activePanel, setActivePanel] = useState<string | null>(null)
+  const [activePanel, setActivePanel] = useState<string | null>(null);
   
   const togglePanel = (panelName: string) => {
-    setActivePanel(activePanel === panelName ? null : panelName)
-  }
-  const [difficulty, setDifficulty] = useState(3)
-  // const [text, setText] = useState(sampleText) // Managed by Tiptap now
-  const [isRecording, setIsRecording] = useState(false)
-  const [isSaved, setIsSaved] = useState(false)
-  // const editorRef = useRef<HTMLDivElement>(null) // Tiptap manages the editor ref
-  const isMobile = useMobile()
+    setActivePanel(activePanel === panelName ? null : panelName);
+  };
+
+  const [difficulty, setDifficulty] = useState(3);
+  const [isRecording, setIsRecording] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
+  const isMobile = useMobile();
 
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
         // Configure StarterKit options if needed
-        // e.g., disable some default extensions
       }),
       Highlight,
       TextAlign.configure({
-        types: ["heading", "paragraph"], // Apply alignment to headings and paragraphs
+        types: ["heading", "paragraph"],
       }),
       FontFamily,
-      TextStyle, // Required by FontFamily
-      Underline, // Add Underline extension
+      TextStyle,
+      Underline,
     ],
-    content: sampleText, // Set initial content
+    content: document.content,
     editorProps: {
       attributes: {
-        // Apply Tailwind classes for styling the editor content area
         class: "outline-none min-h-full text-[#121212] text-lg leading-relaxed max-w-4xl mx-auto prose dark:prose-invert prose-sm sm:prose-base lg:prose-lg xl:prose-2xl focus:outline-none",
       },
     },
-  })
+    onUpdate: ({ editor }) => {
+      // Update document content
+      setDocument(prev => ({
+        ...prev,
+        content: editor.getJSON()
+      }));
+    },
+    onSelectionUpdate: ({ editor }) => {
+      // Track selection changes
+      const { from, to } = editor.state.selection;
+      if (from !== to) {
+        handleSelectionChange({
+          from,
+          to,
+          text: editor.state.doc.textBetween(from, to, ' ')
+        });
+      }
+    }
+  });
 
   // Simulate saving animation
   const handleSave = () => {
-    setIsSaved(true)
-    setTimeout(() => setIsSaved(false), 2000)
-  }
+    setIsSaved(true);
+    setTimeout(() => setIsSaved(false), 2000);
+  };
 
   // Simulate voice recording
   const toggleRecording = () => {
-    setIsRecording(!isRecording)
+    setIsRecording(!isRecording);
     if (!isRecording) {
-      setTimeout(() => setIsRecording(false), 3000)
+      setTimeout(() => setIsRecording(false), 3000);
     }
-  }
-
-  // Remove the old pinch-to-zoom simulation
-  // useEffect(() => { ... }, [])
+  };
 
   // Cleanup editor instance on unmount
   useEffect(() => {
     return () => {
-      editor?.destroy()
-    }
-  }, [editor])
+      editor?.destroy();
+    };
+  }, [editor]);
 
   if (!editor) {
-    return null // Or a loading indicator
+    return null; // Or a loading indicator
   }
 
   return (
-    <div className="relative w-full h-screen overflow-hidden flex flex-col">
-      {/* Editor Header */}
-      <EditorHeader
-        editor={editor}
-        activePanel={activePanel}
-        togglePanel={togglePanel}
-        isRecording={isRecording}
-        toggleRecording={toggleRecording}
-        isSaved={isSaved}
-        handleSave={handleSave}
-      />
+    <div className="relative w-full h-screen flex flex-col">
+      {/* Centered Floating Header - Positioned absolutely */}
+      <motion.div
+        className="fixed top-6 left-0 right-0 z-10 mx-auto bg-[#1A1A1A] rounded-xl shadow-xl flex flex-col overflow-hidden w-[90%] max-w-2xl"
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+      >
+        <div className="flex items-center justify-center px-4 py-2">
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => togglePanel('toolsPanel')}
+              className={cn("text-white hover:text-[#FF5722] transition-colors", activePanel === 'toolsPanel' && "text-[#FF5722]")}
+            >
+              <Type className="w-5 h-5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => togglePanel('formattingToolbar')}
+              className={cn(
+                "text-white hover:text-[#FF5722] transition-colors",
+                activePanel === 'formattingToolbar' && "text-[#FF5722]",
+              )}
+            >
+              <span className="font-bold text-lg">T</span>
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => togglePanel('difficultySlider')}
+              className={cn(
+                "text-white hover:text-[#FF5722] transition-colors",
+                activePanel === 'difficultySlider' && "text-[#FF5722]",
+              )}
+            >
+              <BookOpen className="w-5 h-5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => togglePanel('toneAdjuster')}
+              className={cn("text-white hover:text-[#FF5722] transition-colors", activePanel === 'toneAdjuster' && "text-[#FF5722]")}
+            >
+              <Sliders className="w-5 h-5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => togglePanel('aiPanel')}
+              className={cn(
+                "text-white hover:text-[#FF5722] transition-colors",
+                activePanel === 'aiPanel' && "text-[#FF5722]",
+              )}
+            >
+              <Sparkles className="w-5 h-5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => togglePanel('cursorIDE')}
+              className={cn(
+                "text-white hover:text-[#FF5722] transition-colors",
+                activePanel === 'cursorIDE' && "text-[#FF5722]",
+              )}
+            >
+              <Terminal className="w-5 h-5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleRecording}
+              className={cn(
+                "text-white hover:text-[#FF5722] transition-colors",
+                isRecording && "text-[#FF5722] animate-pulse",
+              )}
+            >
+              <Mic className="w-5 h-5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleSave}
+              className={cn("text-white hover:text-[#FF5722] transition-colors", isSaved && "text-[#4CAF50]")}
+            >
+              <Save className="w-5 h-5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => togglePanel('timeline')}
+              className={cn("text-white hover:text-[#FF5722] transition-colors", activePanel === 'timeline' && "text-[#FF5722]")}
+            >
+              <History className="w-5 h-5" />
+            </Button>
+            {isDiffMode && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => togglePanel('versionDiff')}
+                className={cn(
+                  "text-white hover:text-[#FF5722] transition-colors",
+                  activePanel === 'versionDiff' && "text-[#FF5722]",
+                  (selectedVersions.left === null || selectedVersions.right === null) && "opacity-50"
+                )}
+                disabled={selectedVersions.left === null || selectedVersions.right === null}
+              >
+                <ArrowLeftRight className="w-5 h-5" />
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Expandable Formatting Toolbar */}
+        <AnimatePresence>
+          {activePanel === 'formattingToolbar' && <FormattingToolbar editor={editor} />}
+        </AnimatePresence>
+      </motion.div>
 
       {/* Main Editor Canvas - Takes remaining space */}
-      {/* Use EditorContent for the Tiptap editor */}
       <div className="flex-grow w-full bg-white pt-24 px-8 pb-8 overflow-auto">
-         <EditorContent editor={editor} />
+        <EditorContent editor={editor} />
       </div>
-
 
       {/* Voice Recording Indicator - Positioned absolutely */}
       <AnimatePresence>
@@ -169,35 +272,75 @@ export default function TextEditor() {
       {/* Floating Panels - Positioned absolutely */}
       <AnimatePresence>
         {activePanel === 'difficultySlider' && (
-          // Ensure panels have high z-index to appear above editor
           <div className="fixed right-8 top-1/2 -translate-y-1/2 z-20">
             <DifficultySlider
               difficulty={difficulty}
-              setDifficulty={setDifficulty} // This might need adjustment depending on how difficulty interacts with Tiptap
-              // onClose={() => setActivePanel(null)} // Removed as per TS error
+              setDifficulty={setDifficulty}
             />
           </div>
         )}
       </AnimatePresence>
 
-      {/* Ensure panels have high z-index */}
       <AnimatePresence>
-        {activePanel === 'toneAdjuster' && <div className="fixed z-20"><ToneAdjuster onClose={() => setActivePanel(null)} /></div>}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {activePanel === 'toolsPanel' && <div className="fixed z-20"><ToolsPanel onClose={() => setActivePanel(null)} /></div>}
-      </AnimatePresence>
-
-      {/* Timeline - Centered at bottom, ensure high z-index */}
-      <AnimatePresence>
-        {activePanel === 'timeline' && (
-          <div className="fixed inset-x-0 bottom-0 flex items-center justify-center w-[80vw] mx-auto z-20">
-            <Timeline historyData={historyData} onClose={() => setActivePanel(null)} />
+        {activePanel === 'toneAdjuster' && (
+          <div className="fixed z-20">
+            <ToneAdjuster onClose={() => setActivePanel(null)} />
           </div>
         )}
       </AnimatePresence>
 
+      <AnimatePresence>
+        {activePanel === 'toolsPanel' && (
+          <div className="fixed z-20">
+            <ToolsPanel onClose={() => setActivePanel(null)} />
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* AI Panel - New addition */}
+      <AnimatePresence>
+        {activePanel === 'aiPanel' && (
+          <div className="fixed z-20">
+            <AIPanel onClose={() => setActivePanel(null)} />
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Cursor IDE - New addition */}
+      <AnimatePresence>
+        {activePanel === 'cursorIDE' && (
+          <div className="fixed z-20">
+            <CursorIDE onClose={() => setActivePanel(null)} />
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Timeline - Centered at bottom */}
+      <AnimatePresence>
+        {activePanel === 'timeline' && (
+          <div className="fixed inset-x-0 bottom-0 flex items-center justify-center w-[80vw] mx-auto z-20">
+            <Timeline historyData={[]} onClose={() => setActivePanel(null)} />
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Version Diff Viewer - New addition */}
+      <AnimatePresence>
+        {activePanel === 'versionDiff' && (
+          <div className="fixed z-30">
+            <VersionDiff onClose={() => setActivePanel(null)} />
+          </div>
+        )}
+      </AnimatePresence>
     </div>
-  )
+  );
+}
+
+// Main exported component that provides the editor context
+export default function TextEditor() {
+  return (
+    <EditorProvider>
+      <TextEditorInner />
+    </EditorProvider>
+  );
 }

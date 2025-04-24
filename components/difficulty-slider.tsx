@@ -33,18 +33,44 @@ export function DifficultySlider({ difficulty, setDifficulty }: DifficultySlider
     animate(y, newY, { type: "spring", damping: 50, stiffness: 400 })
   }, [difficulty, levels.length])
 
-  // Set up keyboard shortcuts using our custom hook
+  // Keybindings: Cmd+Option+[-/+] (Mac), Ctrl+Alt+[-/+] (Windows), plus ArrowUp/ArrowDown for accessibility
+  // "Plus" and "Minus" refer to the + and - keys (not numpad)
   useKeyBindings(
     [
       {
-        keys: ["Control+ArrowUp", "Meta+ArrowUp", "Control+Plus", "Meta+Plus"],
+        keys: [
+          // Cmd+Option+= (Mac, for "+"), Cmd+Option+- (Mac, for "-")
+          // Ctrl+Alt+= (Windows, for "+"), Ctrl+Alt+- (Windows, for "-")
+          // Some browsers report "+" as "Equal" with shift, so include both
+          "Meta+Alt+Plus",
+          "Meta+Alt+Equal",
+          "Meta+Alt+Shift+Equal",
+          "Meta+Alt+Minus",
+          "Control+Alt+Plus",
+          "Control+Alt+Equal",
+          "Control+Alt+Shift+Equal",
+          "Control+Alt+Minus",
+          "Control+ArrowUp",
+          "Meta+ArrowUp"
+        ],
         callback: () => {
           const newDifficulty = Math.min(levels.length - 1, difficulty + 1)
           setDifficulty(newDifficulty)
         },
       },
       {
-        keys: ["Control+ArrowDown", "Meta+ArrowDown", "Control+Minus", "Meta+Minus"],
+        keys: [
+          "Meta+Alt+Minus",
+          "Meta+Alt+Equal",
+          "Meta+Alt+Shift+Equal",
+          "Meta+Alt+Plus",
+          "Control+Alt+Minus",
+          "Control+Alt+Equal",
+          "Control+Alt+Shift+Equal",
+          "Control+Alt+Plus",
+          "Control+ArrowDown",
+          "Meta+ArrowDown"
+        ],
         callback: () => {
           const newDifficulty = Math.max(0, difficulty - 1)
           setDifficulty(newDifficulty)
@@ -89,14 +115,15 @@ export function DifficultySlider({ difficulty, setDifficulty }: DifficultySlider
       
       {/* Dark enclosure for the slider */}
       <div className="relative h-[400px] w-[60px] bg-black/80 backdrop-blur-sm rounded-[30px] shadow-lg flex items-center justify-center overflow-hidden border border-white/10">
-        <div className="relative h-[300px] w-full flex items-center justify-center" ref={constraintsRef}>
+        <div className="absolute top-1/2 left-0 -translate-y-1/2 h-[300px] w-full flex items-center justify-center" ref={constraintsRef}>
           {/* Level markers - small dots */}
+          {/* 5 perfectly aligned dots: 0% (top, Graduate) to 100% (bottom, Elementary) */}
           {levels.map((_, index) => (
             <div
               key={index}
               className="absolute w-2 h-2 left-1/2 -translate-x-1/2 rounded-full bg-gray-300"
               style={{
-                top: `${(index / (levels.length - 1)) * 100}%`,
+                top: `calc(${(index / (levels.length - 1)) * 100}% - 4px)`, // offset by half dot height for perfect alignment
               }}
             />
           ))}
